@@ -4,9 +4,21 @@
 #include "sensor_msgs/msg/BatteryState.h"
 #include "geographic_msgs/msg/GeoPoseStamped.h"
 #include "geometry_msgs/msg/Vector3Stamped.h"
+#if AP_DDS_EKF_STATUS_PUB_ENABLED
+#include "ardupilot_msgs/msg/EKFStatus.h"
+#endif // AP_DDS_EKF_STATUS_PUB_ENABLED
 #if AP_DDS_IMU_PUB_ENABLED
 #include "sensor_msgs/msg/Imu.h"
 #endif //AP_DDS_IMU_PUB_ENABLED
+#if AP_DDS_RANGEFINDER_SUB_ENABLED
+#include "sensor_msgs/msg/Range.h"
+#endif // AP_DDS_RANGEFINDER_SUB_ENABLED
+#if AP_DDS_STATE_PUB_ENABLED
+#include "mavros_msgs/msg/State.h"
+#endif // AP_DDS_STATE_PUB_ENABLED
+#if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
+#include "mavros_msgs/msg/ObstacleDistance3D.h"
+#endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 
 #include "uxr/client/client.h"
 
@@ -60,6 +72,18 @@ enum class TopicIndex: uint8_t {
 #if AP_DDS_GLOBAL_POS_CTRL_ENABLED
     GLOBAL_POSITION_SUB,
 #endif // AP_DDS_GLOBAL_POS_CTRL_ENABLED
+#if AP_DDS_RANGEFINDER_SUB_ENABLED
+    RANGEFINDER_SUB,
+#endif // AP_DDS_RANGEFINDER_SUB_ENABLED
+#if AP_DDS_STATE_PUB_ENABLED
+    STATE_PUB,
+#endif // AP_DDS_STATE_PUB_ENABLED
+#if AP_DDS_EKF_STATUS_PUB_ENABLED
+    EKF_STATUS_PUB,
+#endif // AP_DDS_EKF_STATUS_PUB_ENABLED
+#if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
+    OBSTACLE_DISTANCE_SUB,
+#endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 };
 
 static inline constexpr uint8_t to_underlying(const TopicIndex index)
@@ -340,4 +364,76 @@ constexpr struct AP_DDS_Client::Topic_table AP_DDS_Client::topics[] = {
         },
     },
 #endif // AP_DDS_GLOBAL_POS_CTRL_ENABLED
+#if AP_DDS_RANGEFINDER_SUB_ENABLED
+    {
+        .topic_id = to_underlying(TopicIndex::RANGEFINDER_SUB),
+        .pub_id = to_underlying(TopicIndex::RANGEFINDER_SUB),
+        .sub_id = to_underlying(TopicIndex::RANGEFINDER_SUB),
+        .dw_id = uxrObjectId{.id=to_underlying(TopicIndex::RANGEFINDER_SUB), .type=UXR_DATAWRITER_ID},
+        .dr_id = uxrObjectId{.id=to_underlying(TopicIndex::RANGEFINDER_SUB), .type=UXR_DATAREADER_ID},
+        .topic_rw = Topic_rw::DataReader,
+        .topic_name = "rt/ap/rangefinder/sub",
+        .type_name = "sensor_msgs::msg::dds_::Range_",
+        .qos = {
+            .durability = UXR_DURABILITY_VOLATILE,
+            .reliability = UXR_RELIABILITY_BEST_EFFORT,
+            .history = UXR_HISTORY_KEEP_LAST,
+            .depth = 5,
+        },
+    },
+#endif // AP_DDS_RANGEFINDER_SUB_ENABLED
+#if AP_DDS_STATE_PUB_ENABLED
+    {
+        .topic_id = to_underlying(TopicIndex::STATE_PUB),
+        .pub_id = to_underlying(TopicIndex::STATE_PUB),
+        .sub_id = to_underlying(TopicIndex::STATE_PUB),
+        .dw_id = uxrObjectId{.id=to_underlying(TopicIndex::STATE_PUB), .type=UXR_DATAWRITER_ID},
+        .dr_id = uxrObjectId{.id=to_underlying(TopicIndex::STATE_PUB), .type=UXR_DATAREADER_ID},
+        .topic_rw = Topic_rw::DataWriter,
+        .topic_name = "rt/ap/state",
+        .type_name = "mavros_msgs::msg::dds_::State_",
+        .qos = {
+            .durability = UXR_DURABILITY_VOLATILE,
+            .reliability = UXR_RELIABILITY_BEST_EFFORT,
+            .history = UXR_HISTORY_KEEP_LAST,
+            .depth = 5,
+        },
+    },
+#endif // AP_DDS_STATE_PUB_ENABLED
+#if AP_DDS_EKF_STATUS_PUB_ENABLED
+    {
+        .topic_id = to_underlying(TopicIndex::EKF_STATUS_PUB),
+        .pub_id = to_underlying(TopicIndex::EKF_STATUS_PUB),
+        .sub_id = to_underlying(TopicIndex::EKF_STATUS_PUB),
+        .dw_id = uxrObjectId{.id=to_underlying(TopicIndex::EKF_STATUS_PUB), .type=UXR_DATAWRITER_ID},
+        .dr_id = uxrObjectId{.id=to_underlying(TopicIndex::EKF_STATUS_PUB), .type=UXR_DATAREADER_ID},
+        .topic_rw = Topic_rw::DataWriter,
+        .topic_name = "rt/ap/ekf_status",
+        .type_name = "ardupilot_msgs::msg::dds_::EKFStatus_",
+        .qos = {
+            .durability = UXR_DURABILITY_VOLATILE,
+            .reliability = UXR_RELIABILITY_BEST_EFFORT,
+            .history = UXR_HISTORY_KEEP_LAST,
+            .depth = 5,
+        },
+    },
+#endif // AP_DDS_EKF_STATUS_PUB_ENABLED
+#if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
+    {
+        .topic_id = to_underlying(TopicIndex::OBSTACLE_DISTANCE_SUB),
+        .pub_id = to_underlying(TopicIndex::OBSTACLE_DISTANCE_SUB),
+        .sub_id = to_underlying(TopicIndex::OBSTACLE_DISTANCE_SUB),
+        .dw_id = uxrObjectId{.id=to_underlying(TopicIndex::OBSTACLE_DISTANCE_SUB), .type=UXR_DATAWRITER_ID},
+        .dr_id = uxrObjectId{.id=to_underlying(TopicIndex::OBSTACLE_DISTANCE_SUB), .type=UXR_DATAREADER_ID},
+        .topic_rw = Topic_rw::DataReader,
+        .topic_name = "rt/ap/obstacle_distance_3d",
+        .type_name = "mavros_msgs::msg::dds_::ObstacleDistance3D_",
+        .qos = {
+            .durability = UXR_DURABILITY_VOLATILE,
+            .reliability = UXR_RELIABILITY_BEST_EFFORT,
+            .history = UXR_HISTORY_KEEP_LAST,
+            .depth = 5,
+        },
+    },
+#endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 };

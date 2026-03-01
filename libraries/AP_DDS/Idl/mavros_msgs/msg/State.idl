@@ -1,0 +1,39 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mavros_msgs/msg/State.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module mavros_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "State topic from MAVROS")
+    struct State {
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "Connection status")
+      boolean connected;
+
+      @verbatim (language="comment", text=
+        "Armed status")
+      boolean armed;
+
+      @verbatim (language="comment", text=
+        "Guided status")
+      boolean guided;
+
+      @verbatim (language="comment", text=
+        "Manual input status")
+      boolean manual_input;
+
+      @verbatim (language="comment", text=
+        "System mode")
+      string mode;
+
+      @verbatim (language="comment", text=
+        "System status")
+      uint8 system_status;
+    };
+  };
+};

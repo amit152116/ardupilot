@@ -172,6 +172,13 @@ env.bak/
 venv.bak/
 autotest_result_*_junit.xml
 
+# --- Exclude any build or install directory anywhere ---
+**/build/
+**/install/
+**/build_*/
+**/install_*/
+**/log/
+
 # Ignore ESP-IDF SDK defines
 /libraries/AP_HAL_ESP32/targets/esp32/esp-idf/sdkconfig
 /libraries/AP_HAL_ESP32/targets/esp32s3/esp-idf/sdkconfig

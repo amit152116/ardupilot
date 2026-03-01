@@ -14,18 +14,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """Launch actions for ArduPilot."""
-from typing import List
-from typing import Dict
-from typing import Text
-from typing import Tuple
 
-from launch import LaunchContext
-from launch import LaunchDescription
-from launch.actions import ExecuteProcess
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
-from launch.substitutions import PathJoinSubstitution
+from typing import Dict, List, Text, Tuple
 
+from launch import LaunchContext, LaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -370,10 +364,16 @@ class MAVProxyLaunch:
                 description="SITL output port.",
             ),
             DeclareLaunchArgument(
-                "map", default_value="False", description="Enable MAVProxy Map.", choices=BOOL_STRING_CHOICES
+                "map",
+                default_value="False",
+                description="Enable MAVProxy Map.",
+                choices=BOOL_STRING_CHOICES,
             ),
             DeclareLaunchArgument(
-                "console", default_value="False", description="Enable MAVProxy Console.", choices=BOOL_STRING_CHOICES
+                "console",
+                default_value="False",
+                description="Enable MAVProxy Console.",
+                choices=BOOL_STRING_CHOICES,
             ),
         ]
 
@@ -587,7 +587,7 @@ class SITLLaunch:
             ),
             DeclareLaunchArgument(
                 "home",
-                default_value="",
+                default_value="MyField",
                 description="Set start location (lat,lng,alt,yaw) or location name.",
             ),
             DeclareLaunchArgument(

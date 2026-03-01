@@ -1,0 +1,29 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from ardupilot_msgs/msg/EKFStatus.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Vector3.idl"
+#include "std_msgs/msg/Header.idl"
+
+module ardupilot_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "EKF Status message" "\n"
+      "Contains EKF variance information")
+    struct EKFStatus {
+      std_msgs::msg::Header header;
+
+      float velocity_variance;
+
+      float position_variance;
+
+      float height_variance;
+
+      geometry_msgs::msg::Vector3 magnetic_variance;
+
+      float true_airspeed_variance;
+
+      boolean healthy;
+    };
+  };
+};

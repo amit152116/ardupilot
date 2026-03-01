@@ -9,12 +9,39 @@
 
 // UDP only on SITL for now
 #ifndef AP_DDS_UDP_ENABLED
-#define AP_DDS_UDP_ENABLED AP_DDS_ENABLED && AP_NETWORKING_ENABLED
+#define AP_DDS_UDP_ENABLED AP_DDS_ENABLED &&AP_NETWORKING_ENABLED
 #endif
 
 #include <AP_VisualOdom/AP_VisualOdom_config.h>
 #ifndef AP_DDS_VISUALODOM_ENABLED
-#define AP_DDS_VISUALODOM_ENABLED HAL_VISUALODOM_ENABLED && AP_DDS_ENABLED
+#define AP_DDS_VISUALODOM_ENABLED HAL_VISUALODOM_ENABLED &&AP_DDS_ENABLED
+#endif
+
+#include <AP_RangeFinder/AP_RangeFinder_config.h>
+#ifndef AP_DDS_RANGEFINDER_SUB_ENABLED
+#define AP_DDS_RANGEFINDER_SUB_ENABLED AP_RANGEFINDER_ENABLED &&AP_DDS_ENABLED
+#endif
+
+#include <AP_Proximity/AP_Proximity_config.h>
+#ifndef AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
+#define AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED                                   \
+  HAL_PROXIMITY_ENABLED &&AP_DDS_ENABLED
+#endif
+
+#ifndef AP_DDS_STATE_PUB_ENABLED
+#define AP_DDS_STATE_PUB_ENABLED 1
+#endif
+
+#ifndef AP_DDS_DELAY_STATE_TOPIC_MS
+#define AP_DDS_DELAY_STATE_TOPIC_MS 100
+#endif
+
+#ifndef AP_DDS_EKF_STATUS_PUB_ENABLED
+#define AP_DDS_EKF_STATUS_PUB_ENABLED 1
+#endif
+
+#ifndef AP_DDS_DELAY_EKF_STATUS_TOPIC_MS
+#define AP_DDS_DELAY_EKF_STATUS_TOPIC_MS 100
 #endif
 
 // Whether experimental interfaces are enabled.
@@ -27,7 +54,7 @@
 #endif
 
 #ifndef AP_DDS_DELAY_IMU_TOPIC_MS
-#define AP_DDS_DELAY_IMU_TOPIC_MS 5
+#define AP_DDS_DELAY_IMU_TOPIC_MS 20
 #endif
 
 #ifndef AP_DDS_TIME_PUB_ENABLED
@@ -83,7 +110,7 @@
 #endif
 
 #ifndef AP_DDS_DELAY_AIRSPEED_TOPIC_MS
-#define AP_DDS_DELAY_AIRSPEED_TOPIC_MS 33
+#define AP_DDS_DELAY_AIRSPEED_TOPIC_MS 1000
 #endif
 
 #ifndef AP_DDS_BATTERY_STATE_PUB_ENABLED
@@ -139,10 +166,12 @@
 #endif
 
 // Whether to include Twist support
-#define AP_DDS_NEEDS_TWIST AP_DDS_VEL_CTRL_ENABLED || AP_DDS_LOCAL_VEL_PUB_ENABLED
+#define AP_DDS_NEEDS_TWIST                                                     \
+  AP_DDS_VEL_CTRL_ENABLED || AP_DDS_LOCAL_VEL_PUB_ENABLED
 
 // Whether to include Transform support
-#define AP_DDS_NEEDS_TRANSFORMS AP_DDS_DYNAMIC_TF_SUB_ENABLED || AP_DDS_STATIC_TF_PUB_ENABLED
+#define AP_DDS_NEEDS_TRANSFORMS                                                \
+  AP_DDS_DYNAMIC_TF_SUB_ENABLED || AP_DDS_STATIC_TF_PUB_ENABLED
 
 #ifndef AP_DDS_DEFAULT_UDP_IP_ADDR
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS

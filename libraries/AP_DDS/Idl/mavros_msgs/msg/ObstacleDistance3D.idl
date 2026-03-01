@@ -1,0 +1,31 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from mavros_msgs/msg/ObstacleDistance3D.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Point.idl"
+#include "std_msgs/msg/Header.idl"
+
+module mavros_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Obstacle Distance 3D message" "\n"
+      "Represents a single obstacle position in 3D space" "\n"
+      "https://mavlink.io/en/messages/ardupilotmega.html#OBSTACLE_DISTANCE_3D" "\n"
+      "MAVLink Message ID: 11037")
+    struct ObstacleDistance3D {
+   std_msgs::msg::Header header;
+
+      uint8 sensor_type;
+
+      uint8 frame;
+
+      uint16 obstacle_id;
+
+    geometry_msgs::msg::Point position;
+
+      float min_distance;
+
+      float max_distance;
+    };
+  };
+};
