@@ -129,6 +129,10 @@
 #define AP_DDS_DELAY_CLOCK_TOPIC_MS 10
 #endif
 
+#ifndef AP_DDS_CLOCK_SUB_ENABLED
+#define AP_DDS_CLOCK_SUB_ENABLED 1
+#endif
+
 #ifndef AP_DDS_JOY_SUB_ENABLED
 #define AP_DDS_JOY_SUB_ENABLED 1
 #endif

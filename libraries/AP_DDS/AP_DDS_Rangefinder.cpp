@@ -9,10 +9,7 @@
 void AP_DDS_Rangefinder::handle_external_rangefinder(
     const sensor_msgs_msg_Range &msg) {
 
-  auto *rangefinder = AP::rangefinder();
-  if (rangefinder == nullptr) {
-    return;
-  }
+  auto *rangefinder = RangeFinder::get_singleton();
 
   mavlink_distance_sensor_t mavlink_msg = {};
 

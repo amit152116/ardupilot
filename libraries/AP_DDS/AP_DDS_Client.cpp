@@ -47,6 +47,9 @@
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 #include "AP_DDS_ObstacleAvoidance.h"
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
+#if AP_DDS_CLOCK_SUB_ENABLED
+#include "AP_DDS_Clock.h"
+#endif // AP_DDS_CLOCK_SUB_ENABLED
 
 #define STRCPY(D, S) strncpy(D, S, ARRAY_SIZE(D))
 
@@ -114,6 +117,9 @@ sensor_msgs_msg_Range AP_DDS_Client::rx_rangefinder_topic{};
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 mavros_msgs_msg_ObstacleDistance3D AP_DDS_Client::rx_obstacle_distance_topic{};
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
+#if AP_DDS_CLOCK_SUB_ENABLED
+rosgraph_msgs_msg_Clock AP_DDS_Client::rx_clock_topic{};
+#endif // AP_DDS_CLOCK_SUB_ENABLED
 
 // Define the parameter server data members, which are static class scope.
 // If these are created on the stack, then the AP_DDS_Client::on_request
@@ -183,6 +189,17 @@ const AP_Param::GroupInfo AP_DDS_Client::var_info[]{
     // @Increment: 1
     // @User: Standard
     AP_GROUPINFO("_MAX_RETRY", 6, AP_DDS_Client, ping_max_retry, 10),
+
+    // @Param: _USE_SYSID_NS
+    // @DisplayName: Use SYSID for namespace
+    // @Description: When enabled, DDS topics will use SYSID-based namespace.
+    // For example, if SYSID_THISMAV is 1, topics become rt/ap1/pose/filtered
+    // instead of rt/ap/pose/filtered. This allows multiple vehicles to publish
+    // to the same ROS domain without topic name conflicts.
+    // @Values: 0:Disabled,1:Enabled
+    // @RebootRequired: True
+    // @User: Standard
+    AP_GROUPINFO("_USE_SYSID_NS", 7, AP_DDS_Client, use_sysid_namespace, 1),
 
     AP_GROUPEND};
 
@@ -813,6 +830,19 @@ bool AP_DDS_Client::start(void) {
     return true;
   }
 
+  // Initialize topic namespace suffix based on SYSID
+  if (use_sysid_namespace) {
+    hal.util->snprintf(topic_namespace_suffix, sizeof(topic_namespace_suffix),
+                       "%u", mavlink_system.sysid);
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Using SYSID-based namespace: ap%s",
+                  msg_prefix, topic_namespace_suffix);
+  } else {
+    topic_namespace_suffix[0] = '\0';
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,
+                  "%s SYSID namespace disabled, using default 'ap'",
+                  msg_prefix);
+  }
+
   if (!hal.scheduler->thread_create(
           FUNCTOR_BIND_MEMBER(&AP_DDS_Client::main_loop, void), "DDS", 8192,
           AP_HAL::Scheduler::PRIORITY_IO, 1)) {
@@ -950,6 +980,17 @@ void AP_DDS_Client::on_topic(uxrSession *uxr_session, uxrObjectId object_id,
     break;
   }
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
+#if AP_DDS_CLOCK_SUB_ENABLED
+  case topics[to_underlying(TopicIndex::CLOCK_SUB)].dr_id.id: {
+    const bool success =
+        rosgraph_msgs_msg_Clock_deserialize_topic(ub, &rx_clock_topic);
+    if (success == false) {
+      break;
+    }
+    AP_DDS_Clock::handle_clock_update(rx_clock_topic);
+    break;
+  }
+#endif // AP_DDS_CLOCK_SUB_ENABLED
   }
 }
 
@@ -1497,6 +1538,38 @@ bool AP_DDS_Client::init_session() {
   return true;
 }
 
+const char *AP_DDS_Client::get_sysid_topic(const char *base_topic, char *buffer,
+                                           size_t buffer_size) {
+  if (use_sysid_namespace && topic_namespace_suffix[0] != '\0') {
+    // Replace "ap" with "ap{SYSID}" in the topic name
+    // Example: "rt/ap/pose/filtered" -> "rt/ap1/pose/filtered" for SYSID 1
+    const char *ap_pos = strstr(base_topic, "/ap/");
+    if (ap_pos != nullptr) {
+      // Copy everything before "/ap/"
+      size_t prefix_len = ap_pos - base_topic;
+      if (prefix_len >= buffer_size - 1) {
+        // Buffer too small, use original
+        hal.util->snprintf(buffer, buffer_size, "%s", base_topic);
+        return buffer;
+      }
+      strncpy(buffer, base_topic, prefix_len);
+      buffer[prefix_len] = '\0';
+
+      // Add "/ap{SYSID}/" and the rest
+      hal.util->snprintf(buffer + prefix_len, buffer_size - prefix_len,
+                         "/ap%s%s", topic_namespace_suffix,
+                         ap_pos + 3); // +3 to skip "/ap"
+    } else {
+      // No "/ap/" found, use original
+      hal.util->snprintf(buffer, buffer_size, "%s", base_topic);
+    }
+  } else {
+    // Namespace disabled, use original topic name
+    hal.util->snprintf(buffer, buffer_size, "%s", base_topic);
+  }
+  return buffer;
+}
+
 bool AP_DDS_Client::create() {
   WITH_SEMAPHORE(csem);
 
@@ -1526,11 +1599,15 @@ bool AP_DDS_Client::create() {
   }
 
   for (uint16_t i = 0; i < ARRAY_SIZE(topics); i++) {
-    // Topic
+    // Topic - apply SYSID-based namespace
+    char namespaced_topic[128];
+    get_sysid_topic(topics[i].topic_name, namespaced_topic,
+                    sizeof(namespaced_topic));
+
     const uxrObjectId topic_id = {.id = topics[i].topic_id,
                                   .type = UXR_TOPIC_ID};
     const auto topic_req_id = uxr_buffer_create_topic_bin(
-        &session, reliable_out, topic_id, participant_id, topics[i].topic_name,
+        &session, reliable_out, topic_id, participant_id, namespaced_topic,
         topics[i].type_name, UXR_REPLACE);
 
     // Status requests
@@ -1619,13 +1696,21 @@ bool AP_DDS_Client::create() {
     constexpr uint16_t requestTimeoutMs = maxTimeMsPerRequestMs;
 
     if (services[i].service_rr == Service_rr::Replier) {
+      // Apply SYSID-based namespace to service topics
+      char namespaced_request_topic[128];
+      char namespaced_reply_topic[128];
+      get_sysid_topic(services[i].request_topic_name, namespaced_request_topic,
+                      sizeof(namespaced_request_topic));
+      get_sysid_topic(services[i].reply_topic_name, namespaced_reply_topic,
+                      sizeof(namespaced_reply_topic));
+
       const uxrObjectId rep_id = {.id = services[i].rep_id,
                                   .type = UXR_REPLIER_ID};
       const auto replier_req_id = uxr_buffer_create_replier_bin(
           &session, reliable_out, rep_id, participant_id,
           services[i].service_name, services[i].request_type,
-          services[i].reply_type, services[i].request_topic_name,
-          services[i].reply_topic_name, services[i].qos, UXR_REPLACE);
+          services[i].reply_type, namespaced_request_topic,
+          namespaced_reply_topic, services[i].qos, UXR_REPLACE);
 
       uint16_t request = replier_req_id;
       uint8_t status;

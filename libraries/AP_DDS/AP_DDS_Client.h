@@ -55,9 +55,9 @@
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 #include "mavros_msgs/msg/ObstacleDistance3D.h"
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
-#if AP_DDS_CLOCK_PUB_ENABLED
+#if AP_DDS_CLOCK_PUB_ENABLED || AP_DDS_CLOCK_SUB_ENABLED
 #include "rosgraph_msgs/msg/Clock.h"
-#endif // AP_DDS_CLOCK_PUB_ENABLED
+#endif // AP_DDS_CLOCK_PUB_ENABLED || AP_DDS_CLOCK_SUB_ENABLED
 #if AP_DDS_PARAMETER_SERVER_ENABLED
 #include "rcl_interfaces/msg/Parameter.h"
 #include "rcl_interfaces/msg/ParameterType.h"
@@ -250,6 +250,10 @@ private:
   // incoming obstacle distance 3D data for OA
   static mavros_msgs_msg_ObstacleDistance3D rx_obstacle_distance_topic;
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
+#if AP_DDS_CLOCK_SUB_ENABLED
+  // incoming clock synchronization data
+  static rosgraph_msgs_msg_Clock rx_clock_topic;
+#endif // AP_DDS_CLOCK_SUB_ENABLED
   HAL_Semaphore csem;
 
 #if AP_DDS_PARAMETER_SERVER_ENABLED
@@ -350,6 +354,15 @@ public:
   //! @brief Update the internally stored DDS messages with latest data
   void update();
 
+  //! @brief Get topic name with SYSID-based namespace (e.g., "rt/ap" ->
+  //! "rt/ap1")
+  //! @param base_topic The base topic name
+  //! @param buffer Buffer to store the result
+  //! @param buffer_size Size of the buffer
+  //! @return Pointer to the buffer
+  const char *get_sysid_topic(const char *base_topic, char *buffer,
+                              size_t buffer_size);
+
   //! @brief GCS message prefix
   static constexpr const char *msg_prefix = "DDS:";
 
@@ -364,6 +377,13 @@ public:
 
   //! @brief Maximum number of attempts to ping the XRCE agent before exiting
   AP_Int8 ping_max_retry;
+
+  //! @brief Enable SYSID-based namespace (topics become rt/ap1/... for SYSID 1)
+  AP_Int8 use_sysid_namespace;
+
+  //! @brief String suffix derived from SYSID (e.g. "1" for SYSID 1, "" if
+  //! disabled)
+  char topic_namespace_suffix[8];
 
   //! @brief Enum used to mark a topic as a data reader or writer
   enum class Topic_rw : uint8_t {
