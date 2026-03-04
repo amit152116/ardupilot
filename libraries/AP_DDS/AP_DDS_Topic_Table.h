@@ -14,10 +14,10 @@
 #include "sensor_msgs/msg/Range.h"
 #endif // AP_DDS_RANGEFINDER_SUB_ENABLED
 #if AP_DDS_STATE_PUB_ENABLED
-#include "mavros_msgs/msg/State.h"
+#include "ardupilot_msgs/msg/State.h"
 #endif // AP_DDS_STATE_PUB_ENABLED
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
-#include "mavros_msgs/msg/ObstacleDistance3D.h"
+#include "ardupilot_msgs/msg/ObstacleDistance3D.h"
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 
 #include "uxr/client/client.h"
@@ -455,7 +455,7 @@ constexpr struct AP_DDS_Client::Topic_table AP_DDS_Client::topics[] = {
         .dr_id = uxrObjectId{.id = to_underlying(TopicIndex::RANGEFINDER_SUB),
                              .type = UXR_DATAREADER_ID},
         .topic_rw = Topic_rw::DataReader,
-        .topic_name = "rt/ap/rangefinder/sub",
+        .topic_name = "rt/ap/rangefinder_sub",
         .type_name = "sensor_msgs::msg::dds_::Range_",
         .qos =
             {
@@ -477,7 +477,7 @@ constexpr struct AP_DDS_Client::Topic_table AP_DDS_Client::topics[] = {
                              .type = UXR_DATAREADER_ID},
         .topic_rw = Topic_rw::DataWriter,
         .topic_name = "rt/ap/state",
-        .type_name = "mavros_msgs::msg::dds_::State_",
+        .type_name = "ardupilot_msgs::msg::dds_::State_",
         .qos =
             {
                 .durability = UXR_DURABILITY_TRANSIENT_LOCAL,
@@ -521,7 +521,7 @@ constexpr struct AP_DDS_Client::Topic_table AP_DDS_Client::topics[] = {
                         .type = UXR_DATAREADER_ID},
         .topic_rw = Topic_rw::DataReader,
         .topic_name = "rt/ap/obstacle_distance_3d",
-        .type_name = "mavros_msgs::msg::dds_::ObstacleDistance3D_",
+        .type_name = "ardupilot_msgs::msg::dds_::ObstacleDistance3D_",
         .qos =
             {
                 .durability = UXR_DURABILITY_VOLATILE,

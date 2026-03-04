@@ -115,7 +115,7 @@ ardupilot_msgs_msg_GlobalPosition
 sensor_msgs_msg_Range AP_DDS_Client::rx_rangefinder_topic{};
 #endif // AP_DDS_RANGEFINDER_SUB_ENABLED
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
-mavros_msgs_msg_ObstacleDistance3D AP_DDS_Client::rx_obstacle_distance_topic{};
+ardupilot_msgs_msg_ObstacleDistance3D AP_DDS_Client::rx_obstacle_distance_topic{};
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 #if AP_DDS_CLOCK_SUB_ENABLED
 rosgraph_msgs_msg_Clock AP_DDS_Client::rx_clock_topic{};
@@ -653,13 +653,13 @@ void AP_DDS_Client::update_topic(rosgraph_msgs_msg_Clock &msg) {
 #endif // AP_DDS_CLOCK_PUB_ENABLED
 
 #if AP_DDS_STATE_PUB_ENABLED
-void AP_DDS_Client::update_topic(mavros_msgs_msg_State &msg) {
+void AP_DDS_Client::update_topic(ardupilot_msgs_msg_State &msg) {
   update_topic(msg.header.stamp);
   STRCPY(msg.header.frame_id, "");
 
   // connected - true if we have GPS fix
   auto &gps = AP::gps();
-  msg.connected = gps.status() > AP_GPS::NO_GPS;
+  msg.gps_fix = gps.status();
 
   // armed - from arming status
   auto &armed = AP::arming();
@@ -669,95 +669,35 @@ void AP_DDS_Client::update_topic(mavros_msgs_msg_State &msg) {
   // guided - check if in GUIDED mode (mode 4)
   const uint8_t mode = copter->get_mode();
 
-  bool guided = false;
-
   // manual_input - true when in a mode that accepts RC input
   // Modes that accept manual input: STABILIZE(0), ACRO(1), ALT_HOLD(2),
-  // POSHOLD(17)
+  // POSHOLD(16)
   msg.manual_input = (mode == 0 || mode == 1 || mode == 2 || mode == 16);
 
-  // Map common modes to their string names (similar to mavros)
+  // Pass the raw ArduPilot mode number directly
+  msg.mode = mode;
+
+  // guided - true for autonomous/guided modes
+  bool guided = false;
   switch (mode) {
-  case 0:
-    snprintf(msg.mode, sizeof(msg.mode), "STABILIZE");
-    break;
-  case 1:
-    snprintf(msg.mode, sizeof(msg.mode), "ACRO");
-    break;
-  case 2:
-    snprintf(msg.mode, sizeof(msg.mode), "ALT_HOLD");
-    break;
-  case 3:
-    snprintf(msg.mode, sizeof(msg.mode), "AUTO");
-    guided = true;
-    break;
-  case 4:
-    snprintf(msg.mode, sizeof(msg.mode), "GUIDED");
-    guided = true;
-    break;
-  case 5:
-    snprintf(msg.mode, sizeof(msg.mode), "LOITER");
-    guided = true;
-    break;
-  case 6:
-    snprintf(msg.mode, sizeof(msg.mode), "RTL");
-    break;
-  case 7:
-    snprintf(msg.mode, sizeof(msg.mode), "CIRCLE");
-    guided = true;
-    break;
-  case 9:
-    snprintf(msg.mode, sizeof(msg.mode), "LAND");
-    guided = true;
-    break;
-  case 11:
-    snprintf(msg.mode, sizeof(msg.mode), "DRIFT");
-    break;
-  case 13:
-    snprintf(msg.mode, sizeof(msg.mode), "SPORT");
-    break;
-  case 14:
-    snprintf(msg.mode, sizeof(msg.mode), "FLIP");
-    break;
-  case 15:
-    snprintf(msg.mode, sizeof(msg.mode), "AUTOTUNE");
-    break;
-  case 16:
-    snprintf(msg.mode, sizeof(msg.mode), "POSHOLD");
-    guided = true;
-    break;
-  case 17:
-    snprintf(msg.mode, sizeof(msg.mode), "BRAKE");
-    guided = true;
-    break;
-  case 18:
-    snprintf(msg.mode, sizeof(msg.mode), "THROW");
-    break;
-  case 19:
-    snprintf(msg.mode, sizeof(msg.mode), "AVOID_ADSB");
-    guided = true;
-    break;
-  case 20:
-    snprintf(msg.mode, sizeof(msg.mode), "GUIDED_NOGPS");
-    guided = true;
-    break;
-  case 21:
-    snprintf(msg.mode, sizeof(msg.mode), "SMART_RTL");
-    break;
-  case 23:
-    snprintf(msg.mode, sizeof(msg.mode), "FOLLOW");
-    guided = true;
-    break;
-  case 24:
-    snprintf(msg.mode, sizeof(msg.mode), "ZIGZAG");
+  case 3:  // AUTO
+  case 4:  // GUIDED
+  case 5:  // LOITER
+  case 7:  // CIRCLE
+  case 9:  // LAND
+  case 16: // POSHOLD
+  case 17: // BRAKE
+  case 19: // AVOID_ADSB
+  case 20: // GUIDED_NOGPS
+  case 23: // FOLLOW
+  case 24: // ZIGZAG
     guided = true;
     break;
   default:
-    snprintf(msg.mode, sizeof(msg.mode), "MODE%u", mode);
     break;
   }
 
-  msg.guided = guided; // GUIDED mode
+  msg.guided = guided;
   // system_status - MAV_STATE enum value
   // MAV_STATE_UNINIT = 0, MAV_STATE_BOOT = 1, MAV_STATE_CALIBRATING = 2,
   // MAV_STATE_STANDBY = 3, MAV_STATE_ACTIVE = 4, MAV_STATE_CRITICAL = 5,
@@ -969,7 +909,7 @@ void AP_DDS_Client::on_topic(uxrSession *uxr_session, uxrObjectId object_id,
 #endif // AP_DDS_RANGEFINDER_SUB_ENABLED
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
   case topics[to_underlying(TopicIndex::OBSTACLE_DISTANCE_SUB)].dr_id.id: {
-    const bool success = mavros_msgs_msg_ObstacleDistance3D_deserialize_topic(
+    const bool success = ardupilot_msgs_msg_ObstacleDistance3D_deserialize_topic(
         ub, &rx_obstacle_distance_topic);
     if (success == false) {
       break;
@@ -1948,12 +1888,12 @@ void AP_DDS_Client::write_state_topic() {
   if (connected) {
     ucdrBuffer ub{};
     const uint32_t topic_size =
-        mavros_msgs_msg_State_size_of_topic(&state_topic, 0);
+        ardupilot_msgs_msg_State_size_of_topic(&state_topic, 0);
     uxr_prepare_output_stream(
         &session, reliable_out,
         topics[to_underlying(TopicIndex::STATE_PUB)].dw_id, &ub, topic_size);
     const bool success =
-        mavros_msgs_msg_State_serialize_topic(&ub, &state_topic);
+        ardupilot_msgs_msg_State_serialize_topic(&ub, &state_topic);
     if (!success) {
     }
   }

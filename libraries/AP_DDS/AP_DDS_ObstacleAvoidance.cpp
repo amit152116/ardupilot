@@ -8,7 +8,7 @@
 #include <GCS_MAVLink/GCS.h>
 
 void AP_DDS_ObstacleAvoidance::handle_obstacle_distance(
-    const mavros_msgs_msg_ObstacleDistance3D &msg) {
+    const ardupilot_msgs_msg_ObstacleDistance3D &msg) {
   // Pass through to AP_Proximity for pre-arm checks, GCS Radar, and Simple
   // Avoidance. NOTE: AP_Proximity will automatically push this data into the
   // AP_OADatabase for BendyRuler path planning. Do not manually push to

@@ -47,13 +47,13 @@
 #include "sensor_msgs/msg/Range.h"
 #endif // AP_DDS_RANGEFINDER_SUB_ENABLED
 #if AP_DDS_STATE_PUB_ENABLED
-#include "mavros_msgs/msg/State.h"
+#include "ardupilot_msgs/msg/State.h"
 #endif // AP_DDS_STATE_PUB_ENABLED
 #if AP_DDS_EKF_STATUS_PUB_ENABLED
 #include "ardupilot_msgs/msg/EKFStatus.h"
 #endif // AP_DDS_EKF_STATUS_PUB_ENABLED
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
-#include "mavros_msgs/msg/ObstacleDistance3D.h"
+#include "ardupilot_msgs/msg/ObstacleDistance3D.h"
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 #if AP_DDS_CLOCK_PUB_ENABLED || AP_DDS_CLOCK_SUB_ENABLED
 #include "rosgraph_msgs/msg/Clock.h"
@@ -201,12 +201,12 @@ private:
 #endif // AP_DDS_CLOCK_PUB_ENABLED
 
 #if AP_DDS_STATE_PUB_ENABLED
-  mavros_msgs_msg_State state_topic;
+  ardupilot_msgs_msg_State state_topic;
   // The last ms timestamp AP_DDS wrote a State message
   uint64_t last_state_time_ms;
   //! @brief Serialize the current state and publish to the IO stream(s)
   void write_state_topic();
-  static void update_topic(mavros_msgs_msg_State &msg);
+  static void update_topic(ardupilot_msgs_msg_State &msg);
 #endif // AP_DDS_STATE_PUB_ENABLED
 
 #if AP_DDS_EKF_STATUS_PUB_ENABLED
@@ -248,7 +248,7 @@ private:
 #endif // AP_DDS_RANGEFINDER_SUB_ENABLED
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
   // incoming obstacle distance 3D data for OA
-  static mavros_msgs_msg_ObstacleDistance3D rx_obstacle_distance_topic;
+  static ardupilot_msgs_msg_ObstacleDistance3D rx_obstacle_distance_topic;
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 #if AP_DDS_CLOCK_SUB_ENABLED
   // incoming clock synchronization data

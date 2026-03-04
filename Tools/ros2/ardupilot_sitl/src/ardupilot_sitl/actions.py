@@ -32,13 +32,7 @@
 """Module for the OpaqueFunction action."""
 
 import collections.abc
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Text
+from typing import Any, Callable, Dict, Iterable, List, Optional, Text
 
 from launch.action import Action
 from launch.launch_context import LaunchContext
@@ -69,7 +63,7 @@ class ExecuteFunction(Action):
         function: Callable,
         args: Optional[Iterable[Any]] = None,
         kwargs: Optional[Dict[Text, Any]] = None,
-        **left_over_kwargs
+        **left_over_kwargs,
     ) -> None:
         """Create an ExecuteFunction action."""
         super().__init__(**left_over_kwargs)

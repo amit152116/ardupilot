@@ -6,14 +6,14 @@
 
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 
-#include "mavros_msgs/msg/ObstacleDistance3D.h"
+#include "ardupilot_msgs/msg/ObstacleDistance3D.h"
 
 class AP_DDS_ObstacleAvoidance
 {
 public:
 
     // Handler for external obstacle distance data from DDS
-    static void handle_obstacle_distance(const mavros_msgs_msg_ObstacleDistance3D& msg);
+    static void handle_obstacle_distance(const ardupilot_msgs_msg_ObstacleDistance3D& msg);
 
 };
 
