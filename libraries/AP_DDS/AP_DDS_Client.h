@@ -378,12 +378,33 @@ public:
   //! @brief Maximum number of attempts to ping the XRCE agent before exiting
   AP_Int8 ping_max_retry;
 
-  //! @brief Enable SYSID-based namespace (topics become rt/ap1/... for SYSID 1)
-  AP_Int8 use_sysid_namespace;
-
-  //! @brief String suffix derived from SYSID (e.g. "1" for SYSID 1, "" if
-  //! disabled)
+  //! @brief String suffix derived from SYSID (e.g. "1" for SYSID 1, "" if SYSID=0)
+  //! Dynamic naming based on MAVLink SYSID enables multi-vehicle swarm operations:
+  //! - Participant name: "ap{SYSID}" (e.g., "ap1", "ap2")
+  //! - Topic names: "rt/ap{SYSID}/..." (e.g., "rt/ap1/time")
+  //! - Service names: "rq/ap{SYSID}/..." and "rr/ap{SYSID}/..."
   char topic_namespace_suffix[8];
+
+  // Pre-built topic and service names with SYSID namespace
+  static constexpr size_t MAX_TOPICS = 32;
+  static constexpr size_t MAX_SERVICES = 16;
+  static constexpr size_t MAX_TOPIC_NAME_LEN = 128;
+  static constexpr size_t MAX_SERVICE_NAME_LEN = 128;
+
+  // Storage for dynamically built names
+  char dynamic_topic_names[MAX_TOPICS][MAX_TOPIC_NAME_LEN];
+  char dynamic_service_names[MAX_SERVICES][MAX_SERVICE_NAME_LEN];
+  char dynamic_request_names[MAX_SERVICES][MAX_SERVICE_NAME_LEN];
+  char dynamic_reply_names[MAX_SERVICES][MAX_SERVICE_NAME_LEN];
+
+  //! @brief Helper function to build SYSID-based name from base template
+  //! @param base_name The base topic/service name (e.g., "rt/ap/time")
+  //! @param buffer Output buffer for the transformed name
+  //! @param buffer_size Size of the output buffer
+  void build_sysid_name(const char *base_name, char *buffer, size_t buffer_size);
+
+  //! @brief Initialize all dynamic topic and service names
+  void init_dynamic_names();
 
   //! @brief Enum used to mark a topic as a data reader or writer
   enum class Topic_rw : uint8_t {

@@ -189,6 +189,10 @@
 #endif
 #endif
 
+// DDS participant name is now dynamically built as "ap{SYSID}" at runtime
+// Example: "ap1" for SYSID_THISMAV=1, "ap2" for SYSID_THISMAV=2
+// Falls back to "ap" if SYSID=0 (not recommended for multi-vehicle swarms)
+// This default is used only as a fallback; actual name is generated at init
 #ifndef AP_DDS_PARTICIPANT_NAME
 #define AP_DDS_PARTICIPANT_NAME "ap"
 #endif

@@ -193,17 +193,6 @@ const AP_Param::GroupInfo AP_DDS_Client::var_info[]{
     // @User: Standard
     AP_GROUPINFO("_MAX_RETRY", 6, AP_DDS_Client, ping_max_retry, 10),
 
-    // @Param: _USE_SYSID_NS
-    // @DisplayName: Use SYSID for namespace
-    // @Description: When enabled, DDS topics will use SYSID-based namespace.
-    // For example, if SYSID_THISMAV is 1, topics become rt/ap1/pose/filtered
-    // instead of rt/ap/pose/filtered. This allows multiple vehicles to publish
-    // to the same ROS domain without topic name conflicts.
-    // @Values: 0:Disabled,1:Enabled
-    // @RebootRequired: True
-    // @User: Standard
-    AP_GROUPINFO("_USE_SYSID_NS", 7, AP_DDS_Client, use_sysid_namespace, 1),
-
     AP_GROUPEND};
 
 static void initialize(geometry_msgs_msg_Quaternion &q) {
@@ -773,18 +762,23 @@ bool AP_DDS_Client::start(void) {
     return true;
   }
 
-  // Initialize topic namespace suffix based on SYSID
-  if (use_sysid_namespace) {
+  // Initialize SYSID-based namespace
+  // Fallback to empty string (no suffix, just "ap") if SYSID is 0
+  if (mavlink_system.sysid == 0) {
+    topic_namespace_suffix[0] = '\0';
+    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, 
+                  "%s SYSID is 0, using default namespace 'ap'. Set SYSID_THISMAV for multi-vehicle operations.",
+                  msg_prefix);
+  } else {
     hal.util->snprintf(topic_namespace_suffix, sizeof(topic_namespace_suffix),
                        "%u", mavlink_system.sysid);
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Using SYSID-based namespace: ap%s",
-                  msg_prefix, topic_namespace_suffix);
-  } else {
-    topic_namespace_suffix[0] = '\0';
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO,
-                  "%s SYSID namespace disabled, using default 'ap'",
-                  msg_prefix);
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, 
+                  "%s Using SYSID-based namespace: ap%s (from SYSID_THISMAV=%u)",
+                  msg_prefix, topic_namespace_suffix, mavlink_system.sysid);
   }
+
+  // Pre-build all topic and service names with SYSID
+  init_dynamic_names();
 
   if (!hal.scheduler->thread_create(
           FUNCTOR_BIND_MEMBER(&AP_DDS_Client::main_loop, void), "DDS", 8192,
@@ -1573,44 +1567,96 @@ bool AP_DDS_Client::init_session() {
   return true;
 }
 
-const char *AP_DDS_Client::get_sysid_topic(const char *base_topic, char *buffer,
-                                           size_t buffer_size) {
-  if (use_sysid_namespace && topic_namespace_suffix[0] != '\0') {
-    // Replace "ap" with "ap{SYSID}" in the topic name
-    // Example: "rt/ap/pose/filtered" -> "rt/ap1/pose/filtered" for SYSID 1
-    const char *ap_pos = strstr(base_topic, "/ap/");
-    if (ap_pos != nullptr) {
-      // Copy everything before "/ap/"
-      size_t prefix_len = ap_pos - base_topic;
-      if (prefix_len >= buffer_size - 1) {
-        // Buffer too small, use original
-        hal.util->snprintf(buffer, buffer_size, "%s", base_topic);
-        return buffer;
-      }
-      strncpy(buffer, base_topic, prefix_len);
-      buffer[prefix_len] = '\0';
-
-      // Add "/ap{SYSID}/" and the rest
-      hal.util->snprintf(buffer + prefix_len, buffer_size - prefix_len,
-                         "/ap%s%s", topic_namespace_suffix,
-                         ap_pos + 3); // +3 to skip "/ap"
-    } else {
-      // No "/ap/" found, use original
-      hal.util->snprintf(buffer, buffer_size, "%s", base_topic);
-    }
-  } else {
-    // Namespace disabled, use original topic name
-    hal.util->snprintf(buffer, buffer_size, "%s", base_topic);
+void AP_DDS_Client::build_sysid_name(const char *base_name, char *buffer, size_t buffer_size) {
+  if (buffer == nullptr || base_name == nullptr || buffer_size == 0) {
+    return;
   }
-  return buffer;
+
+  // If SYSID is 0 (no suffix), just copy the base name as-is
+  if (topic_namespace_suffix[0] == '\0') {
+    hal.util->snprintf(buffer, buffer_size, "%s", base_name);
+    return;
+  }
+
+  // Replace "/ap/" with "/ap{SYSID}/" in the base name
+  // Example: "rt/ap/time" -> "rt/ap1/time" for SYSID 1
+  const char *ap_pos = strstr(base_name, "/ap/");
+  
+  if (ap_pos != nullptr) {
+    // Calculate prefix length (everything before "/ap/")
+    size_t prefix_len = ap_pos - base_name;
+    
+    if (prefix_len >= buffer_size - 1) {
+      // Buffer too small, fall back to base name
+      GCS_SEND_TEXT(MAV_SEVERITY_WARNING, 
+                    "%s Buffer too small for dynamic name, using base",
+                    msg_prefix);
+      hal.util->snprintf(buffer, buffer_size, "%s", base_name);
+      return;
+    }
+    
+    // Copy prefix (e.g., "rt") using memcpy for safety
+    memcpy(buffer, base_name, prefix_len);
+    buffer[prefix_len] = '\0';
+    
+    // Append "/ap{SYSID}/" and the rest
+    // ap_pos + 3 skips "/ap" to get to the "/" and the rest (e.g., "/time")
+    hal.util->snprintf(buffer + prefix_len, buffer_size - prefix_len,
+                       "/ap%s%s", topic_namespace_suffix, ap_pos + 3);
+  } else {
+    // No "/ap/" found in base name, copy as-is
+    hal.util->snprintf(buffer, buffer_size, "%s", base_name);
+  }
+}
+
+void AP_DDS_Client::init_dynamic_names() {
+  // Compile-time checks for array size bounds
+  static_assert(ARRAY_SIZE(topics) <= MAX_TOPICS, "topics array exceeds MAX_TOPICS");
+  static_assert(ARRAY_SIZE(services) <= MAX_SERVICES, "services array exceeds MAX_SERVICES");
+
+  // Pre-build all topic names with SYSID namespace
+  for (uint16_t i = 0; i < ARRAY_SIZE(topics) && i < MAX_TOPICS; i++) {
+    build_sysid_name(topics[i].topic_name, 
+                     dynamic_topic_names[i], 
+                     sizeof(dynamic_topic_names[i]));
+  }
+  
+  // Pre-build all service names with SYSID namespace
+  for (uint16_t i = 0; i < ARRAY_SIZE(services) && i < MAX_SERVICES; i++) {
+    build_sysid_name(services[i].service_name,
+                     dynamic_service_names[i],
+                     sizeof(dynamic_service_names[i]));
+    build_sysid_name(services[i].request_topic_name,
+                     dynamic_request_names[i],
+                     sizeof(dynamic_request_names[i]));
+    build_sysid_name(services[i].reply_topic_name,
+                     dynamic_reply_names[i],
+                     sizeof(dynamic_reply_names[i]));
+  }
+  
+  GCS_SEND_TEXT(MAV_SEVERITY_INFO, 
+                "%s Dynamic names initialized for %u topics and %u services",
+                msg_prefix, (unsigned)ARRAY_SIZE(topics), (unsigned)ARRAY_SIZE(services));
 }
 
 bool AP_DDS_Client::create() {
   WITH_SEMAPHORE(csem);
 
-  // Participant
+  // Participant - build dynamic name with SYSID
   const uxrObjectId participant_id = {.id = 0x01, .type = UXR_PARTICIPANT_ID};
-  const char *participant_name = AP_DDS_PARTICIPANT_NAME;
+  
+  // Build participant name: "ap1", "ap2", etc., or "ap" if SYSID=0
+  char participant_name[32];
+  if (topic_namespace_suffix[0] != '\0') {
+    hal.util->snprintf(participant_name, sizeof(participant_name), 
+                       "ap%s", topic_namespace_suffix);
+  } else {
+    hal.util->snprintf(participant_name, sizeof(participant_name), "ap");
+  }
+  
+  GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Creating participant: %s", 
+                msg_prefix, participant_name);
+  
   const auto participant_req_id = uxr_buffer_create_participant_bin(
       &session, reliable_out, participant_id, static_cast<uint16_t>(domain_id),
       participant_name, UXR_REPLACE);
@@ -1634,15 +1680,13 @@ bool AP_DDS_Client::create() {
   }
 
   for (uint16_t i = 0; i < ARRAY_SIZE(topics); i++) {
-    // Topic - apply SYSID-based namespace
-    char namespaced_topic[128];
-    get_sysid_topic(topics[i].topic_name, namespaced_topic,
-                    sizeof(namespaced_topic));
+    // Use pre-built dynamic topic name
+    const char *topic_name = dynamic_topic_names[i];
 
     const uxrObjectId topic_id = {.id = topics[i].topic_id,
                                   .type = UXR_TOPIC_ID};
     const auto topic_req_id = uxr_buffer_create_topic_bin(
-        &session, reliable_out, topic_id, participant_id, namespaced_topic,
+        &session, reliable_out, topic_id, participant_id, topic_name,
         topics[i].type_name, UXR_REPLACE);
 
     // Status requests
@@ -1731,21 +1775,18 @@ bool AP_DDS_Client::create() {
     constexpr uint16_t requestTimeoutMs = maxTimeMsPerRequestMs;
 
     if (services[i].service_rr == Service_rr::Replier) {
-      // Apply SYSID-based namespace to service topics
-      char namespaced_request_topic[128];
-      char namespaced_reply_topic[128];
-      get_sysid_topic(services[i].request_topic_name, namespaced_request_topic,
-                      sizeof(namespaced_request_topic));
-      get_sysid_topic(services[i].reply_topic_name, namespaced_reply_topic,
-                      sizeof(namespaced_reply_topic));
+      // Use pre-built dynamic service names
+      const char *request_topic_name = dynamic_request_names[i];
+      const char *reply_topic_name = dynamic_reply_names[i];
+      const char *service_name = dynamic_service_names[i];
 
       const uxrObjectId rep_id = {.id = services[i].rep_id,
                                   .type = UXR_REPLIER_ID};
       const auto replier_req_id = uxr_buffer_create_replier_bin(
           &session, reliable_out, rep_id, participant_id,
-          services[i].service_name, services[i].request_type,
-          services[i].reply_type, namespaced_request_topic,
-          namespaced_reply_topic, services[i].qos, UXR_REPLACE);
+          service_name, services[i].request_type,
+          services[i].reply_type, request_topic_name,
+          reply_topic_name, services[i].qos, UXR_REPLACE);
 
       uint16_t request = replier_req_id;
       uint8_t status;
