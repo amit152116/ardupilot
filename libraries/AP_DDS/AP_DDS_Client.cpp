@@ -31,6 +31,9 @@
 #if AP_DDS_VTOL_TAKEOFF_SERVER_ENABLED
 #include "ardupilot_msgs/srv/Takeoff.h"
 #endif // AP_DDS_VTOL_TAKEOFF_SERVER_ENABLED
+#if AP_DDS_COMMAND_LONG_SERVER_ENABLED
+#include "ardupilot_msgs/srv/CommandLong.h"
+#endif // AP_DDS_COMMAND_LONG_SERVER_ENABLED
 
 #if AP_EXTERNAL_CONTROL_ENABLED
 #include "AP_DDS_ExternalControl.h"
@@ -1326,6 +1329,98 @@ void AP_DDS_Client::on_request(uxrSession *uxr_session, uxrObjectId object_id,
     break;
   }
 #endif // AP_DDS_PARAMETER_SERVER_ENABLED
+#if AP_DDS_COMMAND_LONG_SERVER_ENABLED
+  case services[to_underlying(ServiceIndex::COMMAND_LONG)].rep_id: {
+    ardupilot_msgs_srv_CommandLong_Request command_long_request;
+    ardupilot_msgs_srv_CommandLong_Response command_long_response;
+    
+    // Deserialize the incoming request
+    const bool deserialize_success =
+        ardupilot_msgs_srv_CommandLong_Request_deserialize_topic(
+            ub, &command_long_request);
+    if (deserialize_success == false) {
+      break;
+    }
+
+    // Log the command request
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Received COMMAND_LONG: cmd=%u", 
+                  msg_prefix, command_long_request.command);
+
+    // Create a mavlink_command_int_t packet to execute the command
+    mavlink_command_int_t packet {};
+    packet.command = command_long_request.command;
+    packet.param1 = command_long_request.params[0];
+    packet.param2 = command_long_request.params[1];
+    packet.param3 = command_long_request.params[2];
+    packet.param4 = command_long_request.params[3];
+    // For COMMAND_LONG, params 5-7 are used as x, y, z
+    // They need to be converted for COMMAND_INT (integer lat/lon)
+    packet.x = static_cast<int32_t>(command_long_request.params[4]);
+    packet.y = static_cast<int32_t>(command_long_request.params[5]);
+    packet.z = command_long_request.params[6];
+    packet.frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
+    packet.target_system = 0;
+    packet.target_component = 0;
+    packet.current = 0;
+    packet.autocontinue = 0;
+
+    // Execute the command via GCS
+    MAV_RESULT result = MAV_RESULT_UNSUPPORTED;
+    GCS *gcs_ptr = GCS::get_singleton();
+    if (gcs_ptr != nullptr) {
+      result = gcs_ptr->lua_command_int_packet(packet);
+    }
+
+    // Prepare response
+    command_long_response.success = (result == MAV_RESULT_ACCEPTED);
+    command_long_response.result = static_cast<uint8_t>(result);
+
+    // Create replier ID
+    const uxrObjectId replier_id = {
+        .id = services[to_underlying(ServiceIndex::COMMAND_LONG)].rep_id,
+        .type = UXR_REPLIER_ID};
+
+    // Serialize response
+    uint8_t reply_buffer[16]{};  // CommandLong response needs ~10 bytes
+    ucdrBuffer reply_ub;
+    ucdr_init_buffer(&reply_ub, reply_buffer, sizeof(reply_buffer));
+    const bool serialize_success =
+        ardupilot_msgs_srv_CommandLong_Response_serialize_topic(
+            &reply_ub, &command_long_response);
+    if (serialize_success == false) {
+      break;
+    }
+
+    // Send reply
+    uxr_buffer_reply(uxr_session, reliable_out, replier_id, sample_id,
+                     reply_buffer, ucdr_buffer_length(&reply_ub));
+    
+    // Log the result
+    const char* result_str = "UNKNOWN";
+    switch (result) {
+      case MAV_RESULT_ACCEPTED:
+        result_str = "ACCEPTED";
+        break;
+      case MAV_RESULT_DENIED:
+        result_str = "DENIED";
+        break;
+      case MAV_RESULT_UNSUPPORTED:
+        result_str = "UNSUPPORTED";
+        break;
+      case MAV_RESULT_FAILED:
+        result_str = "FAILED";
+        break;
+      case MAV_RESULT_IN_PROGRESS:
+        result_str = "IN_PROGRESS";
+        break;
+      default:
+        break;
+    }
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s COMMAND_LONG %u result: %s",
+                  msg_prefix, command_long_request.command, result_str);
+    break;
+  }
+#endif // AP_DDS_COMMAND_LONG_SERVER_ENABLED
   }
 }
 

@@ -1,0 +1,19 @@
+// Generic COMMAND_LONG service for sending MAVLink COMMAND_LONG messages
+// This service allows sending arbitrary commands to ArduPilot
+
+module ardupilot_msgs {
+  module srv {
+    // Request structure - matches MAVLink COMMAND_LONG
+    struct CommandLong_Request {
+      uint16 command;       // MAVLink command ID
+      uint8 confirmation;   // Command confirmation (0 = first transmission)
+      float params[7];      // Command parameters (param1-7)
+    };
+    
+    // Response structure - indicates success and result code
+    struct CommandLong_Response {
+      boolean success;      // True if command was accepted/executed
+      uint8 result;         // MAV_RESULT code (from MAVLink COMMAND_ACK)
+    };
+  };
+};
