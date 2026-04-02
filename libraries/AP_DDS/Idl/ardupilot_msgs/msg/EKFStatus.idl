@@ -13,13 +13,13 @@ module ardupilot_msgs {
     struct EKFStatus {
       std_msgs::msg::Header header;
 
+      geometry_msgs::msg::Vector3 magnetic_variance;
+
       float velocity_variance;
 
       float position_variance;
 
       float height_variance;
-
-      geometry_msgs::msg::Vector3 magnetic_variance;
 
       float true_airspeed_variance;
 

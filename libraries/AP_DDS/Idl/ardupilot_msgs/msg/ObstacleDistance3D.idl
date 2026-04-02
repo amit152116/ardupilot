@@ -15,17 +15,17 @@ module ardupilot_msgs {
     struct ObstacleDistance3D {
       std_msgs::msg::Header header;
 
-      uint8 sensor_type;
-
-      uint8 frame;
-
-      uint16 obstacle_id;
-
       geometry_msgs::msg::Point position;
 
       float min_distance;
 
       float max_distance;
+
+      uint16 obstacle_id;
+
+      uint8 sensor_type;
+
+      uint8 frame;
     };
   };
 };

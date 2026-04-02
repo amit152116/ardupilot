@@ -8,53 +8,53 @@
 module ardupilot_msgs {
   module msg {
     module GlobalPosition_Constants {
-      const uint8 FRAME_GLOBAL_INT = 5;
-      const uint8 FRAME_GLOBAL_REL_ALT = 6;
-      const uint8 FRAME_GLOBAL_TERRAIN_ALT = 11;
       @verbatim (language="comment", text=
-        "Position ignore flags")
+        "--- CONSTANTS (Zero bytes over the network) ---")
       const uint16 IGNORE_LATITUDE = 1;
       const uint16 IGNORE_LONGITUDE = 2;
       const uint16 IGNORE_ALTITUDE = 4;
-      @verbatim (language="comment", text=
-        "Velocity vector ignore flags")
       const uint16 IGNORE_VX = 8;
       const uint16 IGNORE_VY = 16;
       const uint16 IGNORE_VZ = 32;
-      @verbatim (language="comment", text=
-        "Acceleration/Force vector ignore flags")
       const uint16 IGNORE_AFX = 64;
       const uint16 IGNORE_AFY = 128;
       const uint16 IGNORE_AFZ = 256;
-      @verbatim (language="comment", text=
-        "Force in af vector flag")
       const uint16 FORCE = 512;
       const uint16 IGNORE_YAW = 1024;
       const uint16 IGNORE_YAW_RATE = 2048;
+      const uint8 FRAME_GLOBAL_INT = 5;
+      const uint8 FRAME_GLOBAL_REL_ALT = 6;
+      const uint8 FRAME_GLOBAL_TERRAIN_ALT = 11;
     };
     @verbatim (language="comment", text=
-      "Experimental REP-147 Goal Interface" "\n"
-      "https://ros.org/reps/rep-0147.html#goal-interface")
+      "Experimental REP-147 Goal Interface")
     struct GlobalPosition {
       std_msgs::msg::Header header;
 
-      uint8 coordinate_frame;
+      @verbatim (language="comment", text=
+        "--- VARIABLES (Optimized for 0 Padding) ---" "\n"
+        "8-Byte Aligned")
+      geometry_msgs::msg::Twist velocity;
 
-      uint16 type_mask;
+      geometry_msgs::msg::Twist acceleration_or_force;
 
       double latitude;
 
       double longitude;
 
       @verbatim (language="comment", text=
-        "in meters, AMSL or above terrain")
+        "4-Byte Aligned")
       float altitude;
 
-      geometry_msgs::msg::Twist velocity;
-
-      geometry_msgs::msg::Twist acceleration_or_force;
-
       float yaw;
+
+      @verbatim (language="comment", text=
+        "2-Byte Aligned")
+      uint16 type_mask;
+
+      @verbatim (language="comment", text=
+        "1-Byte Aligned")
+      uint8 coordinate_frame;
     };
   };
 };
