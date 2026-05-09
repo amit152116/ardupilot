@@ -1,0 +1,94 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from ardupilot_msgs/msg/Mode.msg
+// generated code does not contain a copyright notice
+
+
+module ardupilot_msgs {
+  module msg {
+    module Mode_Constants {
+      @verbatim (language="comment", text=
+        "manual airframe angle with manual throttle")
+      const uint8 STABILIZE = 0;
+      @verbatim (language="comment", text=
+        "manual body-frame angular rate with manual throttle")
+      const uint8 ACRO = 1;
+      @verbatim (language="comment", text=
+        "manual airframe angle with automatic throttle")
+      const uint8 ALT_HOLD = 2;
+      @verbatim (language="comment", text=
+        "fully automatic waypoint control using mission commands")
+      const uint8 AUTO = 3;
+      @verbatim (language="comment", text=
+        "fully automatic fly to coordinate or fly at velocity/direction using GCS immediate commands")
+      const uint8 GUIDED = 4;
+      @verbatim (language="comment", text=
+        "automatic horizontal acceleration with automatic throttle")
+      const uint8 LOITER = 5;
+      @verbatim (language="comment", text=
+        "automatic return to launching point")
+      const uint8 RTL = 6;
+      @verbatim (language="comment", text=
+        "automatic circular flight with automatic throttle")
+      const uint8 CIRCLE = 7;
+      @verbatim (language="comment", text=
+        "automatic landing with horizontal position control")
+      const uint8 LAND = 9;
+      @verbatim (language="comment", text=
+        "semi-autonomous position, yaw and throttle control")
+      const uint8 DRIFT = 11;
+      @verbatim (language="comment", text=
+        "manual earth-frame angular rate control with manual throttle")
+      const uint8 SPORT = 13;
+      @verbatim (language="comment", text=
+        "automatically flip the vehicle on the roll axis")
+      const uint8 FLIP = 14;
+      @verbatim (language="comment", text=
+        "automatically tune the vehicle's roll and pitch gains")
+      const uint8 AUTOTUNE = 15;
+      @verbatim (language="comment", text=
+        "automatic position hold with manual override, with automatic throttle")
+      const uint8 POSHOLD = 16;
+      @verbatim (language="comment", text=
+        "full-brake using inertial/GPS system, no pilot input")
+      const uint8 BRAKE = 17;
+      @verbatim (language="comment", text=
+        "throw to launch mode using inertial/GPS system, no pilot input")
+      const uint8 THROW = 18;
+      @verbatim (language="comment", text=
+        "automatic avoidance of obstacles in the macro scale - e.g. full-sized aircraft")
+      const uint8 AVOID_ADSB = 19;
+      @verbatim (language="comment", text=
+        "guided mode but only accepts attitude and altitude")
+      const uint8 GUIDED_NOGPS = 20;
+      @verbatim (language="comment", text=
+        "SMART_RTL returns to home by retracing its steps")
+      const uint8 SMART_RTL = 21;
+      @verbatim (language="comment", text=
+        "holds position with optical flow without rangefinder")
+      const uint8 FLOWHOLD = 22;
+      @verbatim (language="comment", text=
+        "follow attempts to follow another vehicle or ground station")
+      const uint8 FOLLOW = 23;
+      @verbatim (language="comment", text=
+        "fly in a zigzag manner with predefined point A and point B")
+      const uint8 ZIGZAG = 24;
+      @verbatim (language="comment", text=
+        "produces automated system identification signals in the controllers")
+      const uint8 SYSTEMID = 25;
+      @verbatim (language="comment", text=
+        "autonomous autorotation")
+      const uint8 AUTOROTATE = 26;
+      @verbatim (language="comment", text=
+        "Auto RTL, AUTO will report as this mode if entered to perform a DO_LAND_START Landing sequence")
+      const uint8 AUTO_RTL = 27;
+      @verbatim (language="comment", text=
+        "flip over after crash")
+      const uint8 TURTLE = 28;
+    };
+    struct Mode {
+      @verbatim (language="comment", text=
+        "Mode constants (ArduPilot):")
+      uint8 mode;
+    };
+  };
+};

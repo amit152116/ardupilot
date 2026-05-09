@@ -118,7 +118,8 @@ ardupilot_msgs_msg_GlobalPosition
 sensor_msgs_msg_Range AP_DDS_Client::rx_rangefinder_topic{};
 #endif // AP_DDS_RANGEFINDER_SUB_ENABLED
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
-ardupilot_msgs_msg_ObstacleDistance3D AP_DDS_Client::rx_obstacle_distance_topic{};
+ardupilot_msgs_msg_ObstacleDistance3D
+    AP_DDS_Client::rx_obstacle_distance_topic{};
 #endif // AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
 #if AP_DDS_CLOCK_SUB_ENABLED
 rosgraph_msgs_msg_Clock AP_DDS_Client::rx_clock_topic{};
@@ -667,7 +668,7 @@ void AP_DDS_Client::update_topic(ardupilot_msgs_msg_State &msg) {
   msg.manual_input = (mode == 0 || mode == 1 || mode == 2 || mode == 16);
 
   // Pass the raw ArduPilot mode number directly
-  msg.mode = mode;
+  msg.flight_mode.mode = mode;
 
   // guided - true for autonomous/guided modes
   bool guided = false;
@@ -766,15 +767,17 @@ bool AP_DDS_Client::start(void) {
   // Fallback to empty string (no suffix, just "ap") if SYSID is 0
   if (mavlink_system.sysid == 0) {
     topic_namespace_suffix[0] = '\0';
-    GCS_SEND_TEXT(MAV_SEVERITY_WARNING, 
-                  "%s SYSID is 0, using default namespace 'ap'. Set SYSID_THISMAV for multi-vehicle operations.",
+    GCS_SEND_TEXT(MAV_SEVERITY_WARNING,
+                  "%s SYSID is 0, using default namespace 'ap'. Set "
+                  "SYSID_THISMAV for multi-vehicle operations.",
                   msg_prefix);
   } else {
     hal.util->snprintf(topic_namespace_suffix, sizeof(topic_namespace_suffix),
                        "%u", mavlink_system.sysid);
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, 
-                  "%s Using SYSID-based namespace: ap%s (from SYSID_THISMAV=%u)",
-                  msg_prefix, topic_namespace_suffix, mavlink_system.sysid);
+    GCS_SEND_TEXT(
+        MAV_SEVERITY_INFO,
+        "%s Using SYSID-based namespace: ap%s (from SYSID_THISMAV=%u)",
+        msg_prefix, topic_namespace_suffix, mavlink_system.sysid);
   }
 
   // Pre-build all topic and service names with SYSID
@@ -906,8 +909,9 @@ void AP_DDS_Client::on_topic(uxrSession *uxr_session, uxrObjectId object_id,
 #endif // AP_DDS_RANGEFINDER_SUB_ENABLED
 #if AP_DDS_OBSTACLE_DISTANCE_SUB_ENABLED
   case topics[to_underlying(TopicIndex::OBSTACLE_DISTANCE_SUB)].dr_id.id: {
-    const bool success = ardupilot_msgs_msg_ObstacleDistance3D_deserialize_topic(
-        ub, &rx_obstacle_distance_topic);
+    const bool success =
+        ardupilot_msgs_msg_ObstacleDistance3D_deserialize_topic(
+            ub, &rx_obstacle_distance_topic);
     if (success == false) {
       break;
     }
@@ -1327,7 +1331,7 @@ void AP_DDS_Client::on_request(uxrSession *uxr_session, uxrObjectId object_id,
   case services[to_underlying(ServiceIndex::COMMAND_LONG)].rep_id: {
     ardupilot_msgs_srv_CommandLong_Request command_long_request;
     ardupilot_msgs_srv_CommandLong_Response command_long_response;
-    
+
     // Deserialize the incoming request
     const bool deserialize_success =
         ardupilot_msgs_srv_CommandLong_Request_deserialize_topic(
@@ -1337,11 +1341,11 @@ void AP_DDS_Client::on_request(uxrSession *uxr_session, uxrObjectId object_id,
     }
 
     // Log the command request
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Received COMMAND_LONG: cmd=%u", 
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Received COMMAND_LONG: cmd=%u",
                   msg_prefix, command_long_request.command);
 
     // Create a mavlink_command_int_t packet to execute the command
-    mavlink_command_int_t packet {};
+    mavlink_command_int_t packet{};
     packet.command = command_long_request.command;
     packet.param1 = command_long_request.params[0];
     packet.param2 = command_long_request.params[1];
@@ -1375,7 +1379,7 @@ void AP_DDS_Client::on_request(uxrSession *uxr_session, uxrObjectId object_id,
         .type = UXR_REPLIER_ID};
 
     // Serialize response
-    uint8_t reply_buffer[16]{};  // CommandLong response needs ~10 bytes
+    uint8_t reply_buffer[16]{}; // CommandLong response needs ~10 bytes
     ucdrBuffer reply_ub;
     ucdr_init_buffer(&reply_ub, reply_buffer, sizeof(reply_buffer));
     const bool serialize_success =
@@ -1388,27 +1392,27 @@ void AP_DDS_Client::on_request(uxrSession *uxr_session, uxrObjectId object_id,
     // Send reply
     uxr_buffer_reply(uxr_session, reliable_out, replier_id, sample_id,
                      reply_buffer, ucdr_buffer_length(&reply_ub));
-    
+
     // Log the result
-    const char* result_str = "UNKNOWN";
+    const char *result_str = "UNKNOWN";
     switch (result) {
-      case MAV_RESULT_ACCEPTED:
-        result_str = "ACCEPTED";
-        break;
-      case MAV_RESULT_DENIED:
-        result_str = "DENIED";
-        break;
-      case MAV_RESULT_UNSUPPORTED:
-        result_str = "UNSUPPORTED";
-        break;
-      case MAV_RESULT_FAILED:
-        result_str = "FAILED";
-        break;
-      case MAV_RESULT_IN_PROGRESS:
-        result_str = "IN_PROGRESS";
-        break;
-      default:
-        break;
+    case MAV_RESULT_ACCEPTED:
+      result_str = "ACCEPTED";
+      break;
+    case MAV_RESULT_DENIED:
+      result_str = "DENIED";
+      break;
+    case MAV_RESULT_UNSUPPORTED:
+      result_str = "UNSUPPORTED";
+      break;
+    case MAV_RESULT_FAILED:
+      result_str = "FAILED";
+      break;
+    case MAV_RESULT_IN_PROGRESS:
+      result_str = "IN_PROGRESS";
+      break;
+    default:
+      break;
     }
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s COMMAND_LONG %u result: %s",
                   msg_prefix, command_long_request.command, result_str);
@@ -1567,7 +1571,8 @@ bool AP_DDS_Client::init_session() {
   return true;
 }
 
-void AP_DDS_Client::build_sysid_name(const char *base_name, char *buffer, size_t buffer_size) {
+void AP_DDS_Client::build_sysid_name(const char *base_name, char *buffer,
+                                     size_t buffer_size) {
   if (buffer == nullptr || base_name == nullptr || buffer_size == 0) {
     return;
   }
@@ -1581,28 +1586,28 @@ void AP_DDS_Client::build_sysid_name(const char *base_name, char *buffer, size_t
   // Replace "/ap/" with "/ap{SYSID}/" in the base name
   // Example: "rt/ap/time" -> "rt/ap1/time" for SYSID 1
   const char *ap_pos = strstr(base_name, "/ap/");
-  
+
   if (ap_pos != nullptr) {
     // Calculate prefix length (everything before "/ap/")
     size_t prefix_len = ap_pos - base_name;
-    
+
     if (prefix_len >= buffer_size - 1) {
       // Buffer too small, fall back to base name
-      GCS_SEND_TEXT(MAV_SEVERITY_WARNING, 
+      GCS_SEND_TEXT(MAV_SEVERITY_WARNING,
                     "%s Buffer too small for dynamic name, using base",
                     msg_prefix);
       hal.util->snprintf(buffer, buffer_size, "%s", base_name);
       return;
     }
-    
+
     // Copy prefix (e.g., "rt") using memcpy for safety
     memcpy(buffer, base_name, prefix_len);
     buffer[prefix_len] = '\0';
-    
+
     // Append "/ap{SYSID}/" and the rest
     // ap_pos + 3 skips "/ap" to get to the "/" and the rest (e.g., "/time")
-    hal.util->snprintf(buffer + prefix_len, buffer_size - prefix_len,
-                       "/ap%s%s", topic_namespace_suffix, ap_pos + 3);
+    hal.util->snprintf(buffer + prefix_len, buffer_size - prefix_len, "/ap%s%s",
+                       topic_namespace_suffix, ap_pos + 3);
   } else {
     // No "/ap/" found in base name, copy as-is
     hal.util->snprintf(buffer, buffer_size, "%s", base_name);
@@ -1611,32 +1616,31 @@ void AP_DDS_Client::build_sysid_name(const char *base_name, char *buffer, size_t
 
 void AP_DDS_Client::init_dynamic_names() {
   // Compile-time checks for array size bounds
-  static_assert(ARRAY_SIZE(topics) <= MAX_TOPICS, "topics array exceeds MAX_TOPICS");
-  static_assert(ARRAY_SIZE(services) <= MAX_SERVICES, "services array exceeds MAX_SERVICES");
+  static_assert(ARRAY_SIZE(topics) <= MAX_TOPICS,
+                "topics array exceeds MAX_TOPICS");
+  static_assert(ARRAY_SIZE(services) <= MAX_SERVICES,
+                "services array exceeds MAX_SERVICES");
 
   // Pre-build all topic names with SYSID namespace
   for (uint16_t i = 0; i < ARRAY_SIZE(topics) && i < MAX_TOPICS; i++) {
-    build_sysid_name(topics[i].topic_name, 
-                     dynamic_topic_names[i], 
+    build_sysid_name(topics[i].topic_name, dynamic_topic_names[i],
                      sizeof(dynamic_topic_names[i]));
   }
-  
+
   // Pre-build all service names with SYSID namespace
   for (uint16_t i = 0; i < ARRAY_SIZE(services) && i < MAX_SERVICES; i++) {
-    build_sysid_name(services[i].service_name,
-                     dynamic_service_names[i],
+    build_sysid_name(services[i].service_name, dynamic_service_names[i],
                      sizeof(dynamic_service_names[i]));
-    build_sysid_name(services[i].request_topic_name,
-                     dynamic_request_names[i],
+    build_sysid_name(services[i].request_topic_name, dynamic_request_names[i],
                      sizeof(dynamic_request_names[i]));
-    build_sysid_name(services[i].reply_topic_name,
-                     dynamic_reply_names[i],
+    build_sysid_name(services[i].reply_topic_name, dynamic_reply_names[i],
                      sizeof(dynamic_reply_names[i]));
   }
-  
-  GCS_SEND_TEXT(MAV_SEVERITY_INFO, 
+
+  GCS_SEND_TEXT(MAV_SEVERITY_INFO,
                 "%s Dynamic names initialized for %u topics and %u services",
-                msg_prefix, (unsigned)ARRAY_SIZE(topics), (unsigned)ARRAY_SIZE(services));
+                msg_prefix, (unsigned)ARRAY_SIZE(topics),
+                (unsigned)ARRAY_SIZE(services));
 }
 
 bool AP_DDS_Client::create() {
@@ -1644,19 +1648,19 @@ bool AP_DDS_Client::create() {
 
   // Participant - build dynamic name with SYSID
   const uxrObjectId participant_id = {.id = 0x01, .type = UXR_PARTICIPANT_ID};
-  
+
   // Build participant name: "ap1", "ap2", etc., or "ap" if SYSID=0
   char participant_name[32];
   if (topic_namespace_suffix[0] != '\0') {
-    hal.util->snprintf(participant_name, sizeof(participant_name), 
-                       "ap%s", topic_namespace_suffix);
+    hal.util->snprintf(participant_name, sizeof(participant_name), "ap%s",
+                       topic_namespace_suffix);
   } else {
     hal.util->snprintf(participant_name, sizeof(participant_name), "ap");
   }
-  
-  GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Creating participant: %s", 
-                msg_prefix, participant_name);
-  
+
+  GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Creating participant: %s", msg_prefix,
+                participant_name);
+
   const auto participant_req_id = uxr_buffer_create_participant_bin(
       &session, reliable_out, participant_id, static_cast<uint16_t>(domain_id),
       participant_name, UXR_REPLACE);
@@ -1783,9 +1787,8 @@ bool AP_DDS_Client::create() {
       const uxrObjectId rep_id = {.id = services[i].rep_id,
                                   .type = UXR_REPLIER_ID};
       const auto replier_req_id = uxr_buffer_create_replier_bin(
-          &session, reliable_out, rep_id, participant_id,
-          service_name, services[i].request_type,
-          services[i].reply_type, request_topic_name,
+          &session, reliable_out, rep_id, participant_id, service_name,
+          services[i].request_type, services[i].reply_type, request_topic_name,
           reply_topic_name, services[i].qos, UXR_REPLACE);
 
       uint16_t request = replier_req_id;

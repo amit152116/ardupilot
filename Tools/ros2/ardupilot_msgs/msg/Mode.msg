@@ -1,5 +1,8 @@
 
 # Mode constants (ArduPilot):
+
+uint8 mode
+
 uint8 STABILIZE = 0    # manual airframe angle with manual throttle
 uint8 ACRO = 1         # manual body-frame angular rate with manual throttle
 uint8 ALT_HOLD = 2     # manual airframe angle with automatic throttle

@@ -6,11 +6,11 @@
 
 std_msgs/Header header
 
+# System mode (raw ArduPilot mode number)
+ardupilot_msgs/Mode flight_mode
+
 # Connection status
 uint8 gps_fix
-
-# System mode (raw ArduPilot mode number)
-uint8 mode
 
 # System status (MAV_STATE)
 uint8 system_status

@@ -2,6 +2,7 @@
 // with input from ardupilot_msgs/msg/State.msg
 // generated code does not contain a copyright notice
 
+#include "ardupilot_msgs/msg/Mode.idl"
 #include "std_msgs/msg/Header.idl"
 
 module ardupilot_msgs {
@@ -38,7 +39,7 @@ module ardupilot_msgs {
 
       @verbatim (language="comment", text=
         "System mode (raw ArduPilot mode number)")
-      uint8 mode;
+      ardupilot_msgs::msg::Mode flight_mode;
 
       @verbatim (language="comment", text=
         "System status (MAV_STATE)")
