@@ -77,11 +77,11 @@ constexpr struct AP_DDS_Client::Service_table AP_DDS_Client::services[] = {
         .req_id = to_underlying(ServiceIndex::TAKEOFF),
         .rep_id = to_underlying(ServiceIndex::TAKEOFF),
         .service_rr = Service_rr::Replier,
-        .service_name = "rs/ap/experimental/takeoffService",
+        .service_name = "rs/ap/takeoffService",
         .request_type = "ardupilot_msgs::srv::dds_::Takeoff_Request_",
         .reply_type = "ardupilot_msgs::srv::dds_::Takeoff_Response_",
-        .request_topic_name = "rq/ap/experimental/takeoffRequest",
-        .reply_topic_name = "rr/ap/experimental/takeoffReply",
+        .request_topic_name = "rq/ap/takeoffRequest",
+        .reply_topic_name = "rr/ap/takeoffReply",
     },
 #endif // AP_DDS_VTOL_TAKEOFF_SERVER_ENABLED
 #if AP_DDS_PARAMETER_SERVER_ENABLED
